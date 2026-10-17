@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+
+# Large or generated artifacts (they live on Google Drive, not in Git)
+runs/
+checkpoints/
+eval/
+*.npz
+*.mp4
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+
+# Local secrets
+.env

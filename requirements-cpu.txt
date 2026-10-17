@@ -1,0 +1,17 @@
+# CPU-only environment for the smoke test (tests/smoke_test_cpu.py).
+# Same pins as requirements-colab.txt, without the CUDA extra.
+jax==0.9.2
+jaxlib==0.9.2
+flax==0.12.6
+optax==0.2.8
+orbax-checkpoint==0.12.7
+brax==0.14.2
+mujoco==3.16.0
+mujoco-mjx==3.16.0
+warp-lang==1.18.0
+playground==0.2.0
+mediapy==1.2.7
+pandas
+scipy
+matplotlib
+pillow

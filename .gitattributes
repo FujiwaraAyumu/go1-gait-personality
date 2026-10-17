@@ -1,0 +1,9 @@
+# Keep LF line endings in the repository and in the working tree.
+# The code runs on Linux (Colab), and this avoids CRLF warnings on Windows.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.mp4 binary
+*.npz binary
