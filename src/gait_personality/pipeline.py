@@ -51,16 +51,18 @@ class RunConfig:
 
 
 def _progress_printer(style: str):
+    last: Dict[str, float] = {}
+
     def show(row: Dict[str, float]) -> None:
         done, target = row["step"], max(row["target_step"], 1)
         eta = ""
-        if 0 < done < target and row["elapsed_s"] > 0:
-            # elapsed covers only this (possibly resumed) run; good enough for an estimate
-            rate = done / row["elapsed_s"] if row["elapsed_s"] else 0
-            if rate > 0:
-                eta = f" | 残り約 {max(target - done, 0) / rate / 60:.0f} 分"
-        print(f"[{style}] step {done/1e6:6.1f}M / {target/1e6:.0f}M | reward {row['reward']:7.2f}"
-              f" | 経過 {row['elapsed_s']/60:5.1f} 分{eta}", flush=True)
+        # Speed from the latest interval only: the first one also contains compilation.
+        if last and done > last["step"] and row["elapsed_s"] > last["elapsed_s"] and done < target:
+            rate = (done - last["step"]) / (row["elapsed_s"] - last["elapsed_s"])
+            eta = f" | 残り約 {(target - done) / rate / 60:.0f} 分"
+        last.update(step=done, elapsed_s=row["elapsed_s"])
+        print(f"[{style}] step {training.format_steps(done):>6} / {training.format_steps(target)}"
+              f" | reward {row['reward']:7.2f} | 経過 {row['elapsed_s']/60:5.1f} 分{eta}", flush=True)
     return show
 
 

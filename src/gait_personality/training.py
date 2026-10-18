@@ -21,6 +21,7 @@ from etils import epath
 from flax.training import orbax_utils
 from mujoco_playground import registry, wrapper
 from mujoco_playground.config import locomotion_params
+import numpy as np
 from orbax import checkpoint as ocp
 
 from gait_personality.styles import ENV_NAME, Style, make_env_config
@@ -42,6 +43,31 @@ def ppo_config(
     if num_evals is not None:
         params.num_evals = int(num_evals)
     return params
+
+
+def format_steps(n: float) -> str:
+    """Human-readable step count: '14.7M' (or '800' for tiny test runs)."""
+    return f"{n / 1e6:.1f}M" if abs(n) >= 1e5 else f"{int(n):,}"
+
+
+def effective_timesteps(ppo_kwargs: Dict[str, Any]) -> int:
+    """Number of environment steps Brax PPO will actually run.
+
+    Brax splits training into ``num_evals - 1`` evaluation intervals, each made of
+    ``max(num_resets_per_eval, 1)`` epochs of whole training steps, so the requested
+    ``num_timesteps`` is rounded *up* to a multiple of that unit (about 14.7M
+    steps with the Playground settings for Go1). Defaults mirror ``ppo.train``.
+    """
+    per_step = (
+        int(ppo_kwargs.get("batch_size", 32))
+        * int(ppo_kwargs.get("unroll_length", 10))
+        * int(ppo_kwargs.get("num_minibatches", 16))
+        * int(ppo_kwargs.get("action_repeat", 1))
+    )
+    intervals = max(int(ppo_kwargs.get("num_evals", 1)) - 1, 1)
+    resets = max(int(ppo_kwargs.get("num_resets_per_eval", 0)), 1)
+    epochs = int(np.ceil(int(ppo_kwargs["num_timesteps"]) / (intervals * per_step * resets)))
+    return intervals * resets * epochs * per_step
 
 
 def latest_checkpoint(ckpt_dir: Union[str, epath.Path]) -> Optional[epath.Path]:
@@ -121,6 +147,12 @@ def train_style(
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     (ckpt_dir / "env_config.json").write_text(json.dumps(env_cfg.to_dict(), indent=2, default=str))
 
+    actual_timesteps = effective_timesteps(kwargs)
+    if actual_timesteps != int(num_timesteps):
+        name = style if isinstance(style, str) else style.name
+        print(f"[{name}] 学習量: 指定 {format_steps(num_timesteps)} → 実際は {format_steps(actual_timesteps)} ステップ"
+              "（Brax が評価の区切りに合わせて切り上げるため）", flush=True)
+
     history = load_history(ckpt_dir)
     t0 = time.time()
 
@@ -130,7 +162,7 @@ def train_style(
             "reward": float(metrics.get("eval/episode_reward", float("nan"))),
             "reward_std": float(metrics.get("eval/episode_reward_std", float("nan"))),
             "elapsed_s": time.time() - t0,
-            "target_step": int(num_timesteps) + step_offset,
+            "target_step": actual_timesteps + step_offset,
         }
         history.append(row)
         (ckpt_dir / "history.json").write_text(json.dumps(history, indent=2))

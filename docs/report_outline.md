@@ -22,6 +22,7 @@
 
 - 環境：MuJoCo Playground `Go1JoystickFlatTerrain`（速度指令に追従する歩行タスク）
 - 学習：PPO（Brax）、Playground の調整済みハイパーパラメータ。学習量（ステップ数）と使用 GPU を明記
+  - ステップ数は Brax が切り上げた実際の値を書く（各 `checkpoints/<style>/history.json` の最後の `step`。pro なら標準 約2.06億、各性格 約7,370万）
 - 性格ごとの報酬の変更点：表で示す
 - 評価の指令：静止 2秒 → 前進 0.6 m/s 5秒 → 前進 1.2 m/s 5秒 → 前進しながら左旋回 4秒 → 左へ横歩き 4秒
 - 指標の定義
@@ -35,6 +36,7 @@
 
 - `results/summary.md` の表を貼る（平均 ± 95%信頼区間、転倒率）
 - `results/tradeoff.png` と `results/metrics.png` を貼り、1〜2文ずつ読み取りを書く
+- `results/training.png`（学習曲線）を載せる場合は、報酬の定義が性格ごとに違うので、性格間の高さの比較はできないと注記する
 - 動画のどの場面で違いが見えるかを書く（例：配膳モードは胴体がほとんど揺れない）
 
 ## 5. 考察

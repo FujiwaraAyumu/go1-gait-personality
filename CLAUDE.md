@@ -45,6 +45,10 @@ Colab 上の保存先（Google ドライブ）：`<DRIVE_DIR>/runs/<profile>/{ch
 - 物理計算は MuJoCo Warp が既定（`impl=None`）。不具合時は `impl="jax"`
 - 環境の報酬は1ステップごとに **0 未満が切り捨てられる**（`jp.clip(sum * dt, 0, ...)`）。罰の重みを大きくしすぎると学習信号が消えるので、既定値の2〜5倍程度に抑える
 - 性格の違いは報酬の重みだけ（観測・行動・ネットワークは共通）なので、標準の方策から `restore_checkpoint_path` でファインチューニングできる
+- Brax の PPO は学習量を「(num_evals − 1) × num_resets_per_eval × 学習ステップ」単位に**切り上げる**。Go1 の設定では約1,470万ステップ単位（trial の 10M・5M はどちらも 14.7M、pro は 206M + 73.7M）。`training.effective_timesteps` で同じ計算をして、進捗表示の目標値に使っている
+- 学習中の評価報酬（`eval/episode_reward`）は確率的な方策で測った値で、**性格ごとに報酬の定義が違う**ため性格間で比べられない。比較は評価セル（`evaluate`）の共通指標で行う
+- 速度の実測（Colab Pro の A100）：約400万ステップ/分。pro 全体で約2時間、約5コンピューティングユニット/時
+- 図は返す前に `plt.close` する（ノートブックで二重に表示されるのを防ぐ。`display(fig)` と `savefig` はそのまま使える）
 - チェックポイントは `checkpoints/<style>/<累積ステップ:012d>/`（Brax の `ppo_network_config.json` 相当の最小設定つき）。`DONE` があれば学習済みとしてスキップ、無ければ最新から再開する
 - Brax 標準の `load_policy` は初期化関数が未設定の設定ファイルで失敗するため、`training.load_policy` でネットワークを組み直して読み込む
 - 評価は `jax.vmap` × `jax.lax.scan` で複数 seed を並列に実行。指令は毎ステップ上書きする（環境側のランダムな指令変更を無効にするため）
@@ -72,8 +76,8 @@ SMOKE_OUT=/tmp/gait_smoke MUJOCO_GL=egl python tests/smoke_test_cpu.py
 ## 進捗
 
 - [x] テーマ決定、コード一式・ノートブック作成、CPU スモークテスト通過
-- [ ] GitHub に public で push
-- [ ] Colab で `trial` を最後まで実行（動作確認）
+- [x] GitHub に public で push
+- [x] Colab で `trial` を最後まで実行（A100 で約35分・約3ユニット。学習量が少ないので全性格が転倒し、指標の差もほぼない。パイプラインの動作確認のみ）
 - [ ] 本番の PROFILE（`t4` または `pro`）で学習・評価・動画作成
 - [ ] `results/` を反映し、README の「結果」を更新
 - [ ] YouTube にアップロード（タイトル：`PAI最終課題_omnicampusアカウント名`）
